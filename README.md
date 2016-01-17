@@ -21,4 +21,4 @@ This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations
 
 ### Recommendations ###
 
-If you've got really fast reader of remotely chunked step, then set the throttleLimit to relatively high value, because you don't want to block chunkRequests publishing too often. Setting the maxWaitTimeouts parameter should depends on how fast are your slaves with chunks. If they're handling them fast then set maxWaitTimeouts to just a little bit higher value then throttleLimit.
+If you've got really *fast reader of remotely chunked step, then set the throttleLimit to relatively high value, because you don't want to block chunkRequests publishing too often*. Setting the maxWaitTimeouts parameter *should depends on how fast are your slaves with chunks*. If they're handling them fast then set maxWaitTimeouts to just a little bit higher value then throttleLimit.
