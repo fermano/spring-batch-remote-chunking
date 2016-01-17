@@ -18,3 +18,7 @@ For example:
 ```
 
 This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations** parameter) and getting the replies from slaves (**replyChannel** parameter). Basic idea of this class is that there is a class called **LocalState** which has two atomic integers called **expected** and **actual**. Expected is incremented **per sended ChunkRequest** and actual is incremented **per received ChunkResponse**. So substract of **Expected - Actual is how many receivers are currently processing the chunks**. Every now and then we need to wait for them. This is the moment when parameter **throttleLimit** comes in, it says *what is the maximal count of chunk processing receivers we are going to be waiting on before next ChunkRequests will be published again*. It is to avoid the overwhelming the receivers. At the end of a job, when all chunks are published, we need to wait for all results from slaves, how many times we will ask the replyChannel for replies is saved in "**maxWaitTimeouts**" parameter.
+
+### Recommendations ###
+
+If you've got really fast reader of remotely chunked step, then set the throttleLimit to relatively high value, because you don't want to block chunkRequests publishing too often. Setting the maxWaitTimeouts parameter should depends on how fast are your slaves with chunks. If they're handling them fast then set maxWaitTimeouts to just a little bit higher value then throttleLimit.
