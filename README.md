@@ -17,7 +17,7 @@ For example:
     </bean>
 ```
 
-This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations** parameter) and getting the replies from slaves (**replyChannel** parameter). Basic idea of this class is that there is a class called **LocalState** which has two atomic integers called **expected** and **actual**. Expected is incremented **per sended ChunkRequest** and actual is incremented **per received ChunkResponse**. So substract of **Expected - Actual is how many receivers are currently processing the chunks**. Every now and then we need to wait for them. This is the moment when parameter **throttleLimit** comes in, it says *what is the maximal count of chunk processing receivers we are going to be waiting on before next ChunkRequests will be published again*. It is to avoid the overwhelming the receivers. At the end of a job, when all chunks are published, we need to wait for all results from slaves, how many times we will ask the replyChannel for replies is saved in "**maxWaitTimeouts**" parameter.
+This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations** parameter) and getting the replies from slaves (**replyChannel** parameter). Basic idea of this class is that there is a class called **LocalState** which has two atomic integers called **expected** and **actual**. Expected is incremented **per sended ChunkRequest** to slave and actual is incremented **per received ChunkResponse**. So substract of **Expected - Actual is how many receivers are currently processing the chunks**. Every now and then we need to wait for them. This is the moment when parameter **throttleLimit** comes in, it says *what is the maximal count of chunk processing receivers we are going to be waiting on before next ChunkRequests will be published again*. It is to avoid the overwhelming the receivers. At the end of a job, when all chunks are published, we need to wait for all results from slaves, how many times we will ask the replyChannel for replies is saved in "**maxWaitTimeouts**" parameter.
 
 ### Recommendations ###
 
@@ -25,8 +25,8 @@ If you've got really *fast reader of remotely chunked step, then set the throttl
 
 ### Publishing ChunkRequests and getting ChunkResponses(messagingGateway, masterChunkReplies params)  ###
 
-To send ChunkRequests from master node, you need to define messagingGateway for publishing it. You can do it for example like this:
-
+To send ChunkRequests from master node, you need to define messagingGateway for publishing it. 
+You can do it for example like this:
 
 ```
     <bean id="messagingGateway" class="org.springframework.integration.core.MessagingTemplate">
@@ -67,3 +67,9 @@ To send ChunkRequests from master node, you need to define messagingGateway for 
 
     <task:executor id="requestsPushingExecutor" pool-size="10-50" queue-capacity="0" />
 ```
+
+Let's explain previous configuration. First we defined direct channel called **masterChunkRequests** for publishing chunkRequests to slaves. If you've got really fast reader, like file reader then I highly recommend to dispatch chunks in parallel, with task executor, like I did with **requestsPushingExecutor**. You'll make chunks dispatching really fast then. Bean which performs own chunk dispatching is a simple outbound-channel-adapter, see **masterJMSRequests**. Channel for getting replies from slaves needs to be **pollable channel**, see **masterChunkReplies**. 
+
+### Recommendations ###
+
+I highly recommend to **get ChunkResponses from slaves via message-driven-channel-adapter(see masterJMSReplies)** and **not via pooling** like you can find in the examples at github. Why? Because sometimes when slaves are really fast with processing the chunks I came into situation that I've got not consumed ChunkResponses in masterChunkReplies channel and job was already ended which resulted into weird and not deterministic situation regarding the job result.
