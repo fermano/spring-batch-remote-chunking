@@ -22,3 +22,48 @@ This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations
 ### Recommendations ###
 
 If you've got really *fast reader of remotely chunked step, then set the throttleLimit to relatively high value, because you don't want to block chunkRequests publishing too often*. Setting the maxWaitTimeouts parameter *should depends on how fast are your slaves with chunks*. If they're handling them fast then set maxWaitTimeouts to just a little bit higher value then throttleLimit.
+
+### Publishing ChunkRequests and getting ChunkResponses(messagingGateway, masterChunkReplies params)  ###
+
+To send ChunkRequests from master node, you need to define messagingGateway for publishing it. You can do it for example like this:
+
+
+```
+    <bean id="messagingGateway" class="org.springframework.integration.core.MessagingTemplate">
+        <property name="defaultChannel" ref="masterChunkRequests" />
+        <property name="receiveTimeout" value="2000" />
+    </bean>
+
+
+    <!-- Move chunks to subscribers in parallel, with poolExecutor -->
+    <int:channel id="masterChunkRequests" >
+        <int:dispatcher task-executor="requestsPushingExecutor" />
+    </int:channel>
+
+    <int:channel id="masterChunkReplies" >
+        <int:queue />
+    </int:channel>
+
+    <!-- Outbound channel adapter for sending requests (chunks) -->
+    <jms:outbound-channel-adapter id="masterJMSRequests"
+                                  channel="masterChunkRequests"
+                                  connection-factory="remoteChunkingConnectionFactory"
+                                  destination="remoteChunkingRequestsQueue"
+            />
+
+    <!-- Remote Chunking Replies From Slave -->
+    <jms:message-driven-channel-adapter id="masterJMSReplies"
+                                            connection-factory="remoteChunkingConnectionFactory"
+                                            destination="remoteChunkingRepliesQueue"
+                                            channel="masterChunkReplies"
+                                            concurrent-consumers="10"
+                                            max-concurrent-consumers="50"
+                                            receive-timeout="5000"
+                                            idle-task-execution-limit="10"
+                                            idle-consumer-limit="5"
+            />
+
+    <int:logging-channel-adapter id="loggingChannel" level="INFO" log-full-message="true"/>
+
+    <task:executor id="requestsPushingExecutor" pool-size="10-50" queue-capacity="0" />
+```
