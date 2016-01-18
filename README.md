@@ -65,10 +65,10 @@ You can do it for example like this:
 
     <int:logging-channel-adapter id="loggingChannel" level="INFO" log-full-message="true"/>
 
-    <task:executor id="requestsPushingExecutor" pool-size="10-50" queue-capacity="0" />
+    <task:executor id="requestsPublishingExecutor" pool-size="10-50" queue-capacity="0" />
 ```
 
-Let's explain previous configuration. First we defined direct channel called **masterChunkRequests** for publishing chunkRequests to slaves. If you've got really fast reader, like file reader then I highly recommend to dispatch chunks in parallel, with task executor, like I did with **requestsPushingExecutor**. You'll make chunks dispatching really fast then. Bean which performs own chunk dispatching is a simple outbound-channel-adapter, see **masterJMSRequests**. Channel for getting replies from slaves needs to be **pollable channel**, see **masterChunkReplies**. 
+Let's explain previous configuration. First we defined direct channel called **masterChunkRequests** for publishing chunkRequests to slaves. If you've got really fast reader, like file reader then I highly recommend to dispatch chunks in parallel, with task executor, like I did with **requestsPublishingExecutor**. You'll make chunks dispatching really fast then. Bean which performs own chunk dispatching is a simple outbound-channel-adapter, see **masterJMSRequests**. Channel for getting replies from slaves needs to be **pollable channel**, see **masterChunkReplies**. 
 
 ### Recommendations ###
 
