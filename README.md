@@ -68,8 +68,48 @@ You can do it for example like this:
     <task:executor id="requestsPublishingExecutor" pool-size="10-50" queue-capacity="0" />
 ```
 
-Let's explain previous configuration. First we defined direct channel called **masterChunkRequests** for publishing chunkRequests to slaves. If you've got really fast reader, like file reader then I highly recommend to dispatch chunks in parallel, with task executor, like I did with **requestsPublishingExecutor**. You'll make chunks dispatching really fast then. Bean which performs own chunk dispatching is a simple outbound-channel-adapter, see **masterJMSRequests**. Channel for getting replies from slaves needs to be **pollable channel**, see **masterChunkReplies**. 
+Let's explain previous configuration. First we defined direct channel called **masterChunkRequests** for publishing chunkRequests to slaves. If you've got really fast reader, like file reader, then I highly recommend to dispatch chunks in parallel, with task executor, like I did with **requestsPublishingExecutor**. You'll make chunks dispatching really fast then. Bean which performs own chunk dispatching is a simple JMS outbound-channel-adapter, see **masterJMSRequests**. Channel for getting replies from slaves needs to be **pollable channel**, see **masterChunkReplies**. 
 
 ### Recommendations ###
 
 I highly recommend to **get ChunkResponses from slaves via message-driven-channel-adapter(see masterJMSReplies)** and **not via pooling** like you can find in the examples at github. Why? Because sometimes when slaves are really fast with processing the chunks I came into situation that I've got not consumed ChunkResponses in masterChunkReplies channel and job was already ended which resulted into weird and not deterministic situation regarding the job result.
+
+## Spring components necessary to define at Slave Nodes ##
+
+Spring Integration configuration at slaves logically must begin **with getting the ChunkRequests from master node**, see JMS message driven adapter "**slaveRequests**" in the following example. Also we need to define JMS outbound channel adapter for publishing the replies back to master, see "slaveOutgoingReplies" in the example below.
+
+```
+<!-- Slave request messages begin here -->
+    <jms:message-driven-channel-adapter id="slaveRequests"
+                                        connection-factory="remoteChunkingConnectionFactory"
+                                        destination="remoteChunkingRequestsQueue"
+                                        channel="chunkRequests"
+                                        concurrent-consumers="10"
+                                        max-concurrent-consumers="50"
+                                        receive-timeout="5000"
+                                        idle-task-execution-limit="10"
+                                        idle-consumer-limit="5"
+
+            />
+
+    <int:channel id="chunkRequests" />
+    <int:channel id="chunkReplies">
+        <int:interceptors>
+            <int:wire-tap channel="loggingChannel"/>
+        </int:interceptors>
+    </int:channel>
+
+    <jms:outbound-channel-adapter id="slaveOutgoingReplies"
+                                  connection-factory="remoteChunkingConnectionFactory"
+                                  destination="remoteChunkingRepliesQueue"
+                                  channel="chunkReplies"
+            />
+
+    <int:logging-channel-adapter id="loggingChannel" level="INFO" log-full-message="true"/>
+```
+
+### Recommendations ###
+
+I highly** recommend not to follow the examples at github** and use JMS message driven adapter with multithreaded receivers instead of JMS pooling, especially if you've got really fast readers. It really speeds-up the receiving process.
+
+
