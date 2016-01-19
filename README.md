@@ -110,6 +110,52 @@ Spring Integration configuration at slaves logically must begin **with getting t
 
 ### Recommendations ###
 
-I highly** recommend not to follow the examples at github** and use JMS message driven adapter with multithreaded receivers instead of JMS pooling, especially if you've got really fast readers. It really speeds-up the receiving process.
+I highly** recommend not to follow the examples at github** and use JMS message driven adapter with multithreaded receivers instead of JMS pooling, especially if you've got really fast master readers. It really speeds-up the receiving process.
+
+### Configuring batch processing at Slave nodes... ###
+
+Now since we've got defined integration part with master, we can continue with own batch slave configuration. You can do it like this:
 
 
+```
+<!-- Slave part of the job -->
+    <int:service-activator id="srvActivator"
+                           input-channel="chunkRequests"
+                           output-channel="chunkReplies"
+                           ref="slaveChunkHandler" method="handleChunk"/>
+
+    <bean id="slaveImportOfferLimitClientHibernateWriter"
+          class="net.homecredit.hs.core.bl.service.productoffer.limits.batch.ImportOfferLimitClientHibernateWriter">
+        <property name="writerName" value="slave-writer" />
+        <property name="isSlaveWriter" value="true" />
+    </bean>
+
+    <bean id="slaveChunkHandler"
+          class="org.springframework.batch.integration.chunk.ChunkProcessorChunkHandler">
+        <property name="chunkProcessor" >
+            <bean class="org.springframework.batch.core.step.item.SimpleChunkProcessor">
+                <property name="itemWriter" ref="slaveImportOfferLimitClientHibernateWriter"/>
+                <property name="itemProcessor">
+                    <bean class="org.springframework.batch.item.support.PassThroughItemProcessor"/>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <!-- Master part of the job -->
+    <int:service-activator
+            input-channel="masterChunkRequests"
+            output-channel="masterChunkReplies"
+            ref="masterChunkHandler"
+            />
+
+    <bean id="masterChunkHandler" class="org.springframework.batch.integration.chunk.RemoteChunkHandlerFactoryBean">
+        <property name="chunkWriter" ref="chunkWriter" /> 
+        <property name="step" ref="stepWriteClientDataTransferItems" />
+    </bean>
+```
+Let's explain previous Spring configuration fragment. Bean with id "**srvActivator**" is a service activator which is activated with receiving ChunkRequest object from channel chunkRequests, this channel is feeded by JMS message driven adapter with id slaveRequests, remember? This service activator passes this request to "**slaveChunkHandler**" where ChunkRequest is handed over to **ChunkProcessorChunkHandler**. Here you can come up with your processor and writer you want to run at slave nodes, see **itemProcessor** and **itemWriter** properties definition.
+
+### RemoteChunkHandlerFactoryBean ### 
+
+And what about masterChunkHandler? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your normal chunk-oriented step into remotely chunked. And without need of changing your step configuration! Pretty good, isn't it? 
