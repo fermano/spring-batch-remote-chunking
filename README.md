@@ -156,6 +156,6 @@ Now since we've got defined integration part with master, we can continue with o
 ```
 Let's explain previous Spring configuration fragment. Bean with id "**srvActivator**" is a service activator which is activated with receiving ChunkRequest object from channel chunkRequests, this channel is feeded by JMS message driven adapter with id slaveRequests, remember? This service activator passes this request to "**slaveChunkHandler**" where ChunkRequest is handed over to **ChunkProcessorChunkHandler**. Here you can come up with your processor and writer you want to run at slave nodes, see **itemProcessor** and **itemWriter** properties definition.
 
-### RemoteChunkHandlerFactoryBean ### 
+### RemoteChunkHandlerFactoryBean ###
 
-And what about masterChunkHandler? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your normal chunk-oriented step into remotely chunked. And without need of changing your step configuration! Pretty good, isn't it? 
+And what about masterChunkHandler? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your normal chunk-oriented step into remotely chunked. And without need of changing your step configuration! Pretty good, isn't it?
