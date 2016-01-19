@@ -158,4 +158,4 @@ Let's explain previous Spring configuration fragment. Bean with id "**srvActivat
 
 ### RemoteChunkHandlerFactoryBean ###
 
-And what about masterChunkHandler? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your normal chunk-oriented step into remotely chunked. And without need of changing your step configuration! Pretty good, isn't it?
+And what about RemoteChunkHandlerFactoryBean? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your normal chunk-oriented step into remotely chunked. **And without need of changing your step configuration**! Pretty good, isn't it? And how does it work? Well, **RemoteChunkHandlerFactoryBean grabs previous locally running item-processor from your step and injects there chunk writer for publishing items to slaves**.
