@@ -17,7 +17,7 @@ For example:
     </bean>
 ```
 
-This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations** parameter) and getting the replies from slaves (**replyChannel** parameter). Basic idea of this class is that there is a class called **LocalState** which has two atomic integers called **expected** and **actual**. Expected is incremented **per sended ChunkRequest** to slave and actual is incremented **per received ChunkResponse**. So substract of 
+This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations** parameter) and getting the replies from slaves (**replyChannel** parameter). Basic idea of this class is that there is a class in it called **LocalState** which has two atomic integers called **expected** and **actual**. Expected is incremented **per sended ChunkRequest** to slave and actual is incremented **per received ChunkResponse**. So substract of 
 
 ```
 LocalState.Expected - LocalState.Actual = how many remote slaves are currently processing the chunks. 
