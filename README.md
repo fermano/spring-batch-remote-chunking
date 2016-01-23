@@ -17,7 +17,13 @@ For example:
     </bean>
 ```
 
-This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations** parameter) and getting the replies from slaves (**replyChannel** parameter). Basic idea of this class is that there is a class called **LocalState** which has two atomic integers called **expected** and **actual**. Expected is incremented **per sended ChunkRequest** to slave and actual is incremented **per received ChunkResponse**. So substract of **Expected - Actual is how many receivers are currently processing the chunks**. Every now and then we need to wait for them. This is the moment when parameter **throttleLimit** comes in, it says *what is the maximal count of chunk processing receivers we are going to be waiting on before next ChunkRequests will be published again*. It is to avoid the overwhelming the receivers. At the end of a job, when all chunks are published, we need to wait for all results from slaves, how many times we will ask the replyChannel for replies is saved in "**maxWaitTimeouts**" parameter.
+This bean is in duty of publishing ChunkRequests to slaves(**messagingOperations** parameter) and getting the replies from slaves (**replyChannel** parameter). Basic idea of this class is that there is a class called **LocalState** which has two atomic integers called **expected** and **actual**. Expected is incremented **per sended ChunkRequest** to slave and actual is incremented **per received ChunkResponse**. So substract of 
+
+```
+LocalState.Expected - LocalState.Actual = how many remote slaves are currently processing the chunks. 
+```
+
+Every now and then we need to wait for them to finish. This is the moment when parameter **throttleLimit** comes in, it says *what is the maximal count of chunk processing receivers we are going to be waiting on before next ChunkRequests will be published again*. It is to avoid the overwhelming the receivers. At the end of a job, when all chunks are published, we need to wait for all results from slaves, how many times we will ask the replyChannel for replies is saved in "**maxWaitTimeouts**" parameter.
 
 ### Recommendations ###
 
@@ -144,6 +150,7 @@ Now since we've got defined integration part with master, we can continue with o
 
     <!-- Master part of the job -->
     <int:service-activator
+            id="masterServiceActivator"
             input-channel="masterChunkRequests"
             output-channel="masterChunkReplies"
             ref="masterChunkHandler"
@@ -158,4 +165,86 @@ Let's explain previous Spring configuration fragment. Bean with id "**srvActivat
 
 ### RemoteChunkHandlerFactoryBean ###
 
-And what about RemoteChunkHandlerFactoryBean? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your normal chunk-oriented step into remotely chunked. **And without need of changing your step configuration**! Pretty good, isn't it? And how does it work? Well, **RemoteChunkHandlerFactoryBean grabs previous locally running item-processor from your step and injects there chunk writer for publishing items to slaves**.
+And what about RemoteChunkHandlerFactoryBean? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your local chunk-oriented step into remotely chunked. **And without need of changing your step configuration**! Pretty good, isn't it? And how does it work? Well, **RemoteChunkHandlerFactoryBean removes item-processor and item-writer from your step and puts there PassThroughItemProcessor and ChunkWriter into their place.** This isn't very well documented, but works it in this way. See following code from RemoteChunkHandlerFactoryBean which does that replacing:
+
+
+```
+/**
+	 * Replace the chunk processor in the tasklet provided with one that can act as a master in the Remote Chunking
+	 * pattern.
+	 * 
+	 * @param tasklet a ChunkOrientedTasklet
+	 * @param chunkWriter an ItemWriter that can send the chunks to remote workers
+	 * @param stepContributionSource a StepContributionSource used to gather results from the workers
+	 */
+	private void replaceChunkProcessor(ChunkOrientedTasklet<?> tasklet, ItemWriter<T> chunkWriter,
+			final StepContributionSource stepContributionSource) {
+		setField(tasklet, "chunkProcessor", new SimpleChunkProcessor<T, T>(new PassThroughItemProcessor<T>(),
+				chunkWriter) {
+			@Override
+			protected void write(StepContribution contribution, Chunk<T> inputs, Chunk<T> outputs) throws Exception {
+				doWrite(outputs.getItems());
+				// Do not update the step contribution until the chunks are
+				// actually processed
+				updateStepContribution(contribution, stepContributionSource);
+			}
+		});
+	}
+```
+
+
+### ChunkRequests are load-balanced between master and slaves in Round-Robin manner, yeah! ###
+
+This is certainly something you'd expect from your spring job scalling, right? Let's see how does it work, take a closer look at following two configuration fragments:
+
+```
+  <int:service-activator
+            id="masterServiceActivator"
+            input-channel="masterChunkRequests"
+            output-channel="masterChunkReplies"
+            ref="masterChunkHandler"
+            />
+
+    <bean id="masterChunkHandler" class="org.springframework.batch.integration.chunk.RemoteChunkHandlerFactoryBean">
+        <property name="chunkWriter" ref="chunkWriter" /> 
+        <property name="step" ref="stepWriteClientDataTransferItems" />
+    </bean>
+```
+
+```
+    <!-- Outbound channel adapter for sending requests (chunks) -->
+    <jms:outbound-channel-adapter id="masterJMSRequests"
+                                  channel="masterChunkRequests"
+                                  connection-factory="remoteChunkingConnectionFactory"
+                                  destination="remoteChunkingRequestsQueue"
+            />
+```
+
+Now "masterJMSRequests" is a Direct Channel, remember? With previous configurations, this channel has **two subscribers**, one which sends ChunkRequests to slaves(**outbound-channel-adapter**) and one which sends ChunkRequests for processing at master (**service-activator**) Now comes part which isn't documented very well, again. **These two subscribers receives ChunkRequests in round-robin manner by default, yes, MASTER AND SLAVES receives ChunkRequests in circular manner!** In case of service-activator, processing takes place at master node, chunk is processed as your local version of your step defines...Do you get the idea now? Processing at slaves you define by entering the flow after consuming ChunkRequest from queue at slaves via ChunkProcessorChunkHandler, see **srvActivator** bean. You still don't get it? See the following example:
+
+We've got for example Spring batch Step1, with **local definition**
+
+```
+reader = A
+processor = B
+writer = C
+
+```
+
+Now with definition of RemoteChunkHandlerFactoryBean, Step1 changes into:
+
+```
+reader = A
+processor = PassThroughItemProcessor
+writer = chunk-writer, publishing ChunkRequests to slaves
+
+```
+Mentioned chunk-writer delegates into "**masterChunkRequests**" channel. If subscriber of that channel "masterJMSRequests" is invoked, request is send to slaves, if substriber "masterServiceActivator" is invoked, request is send to master and it's processed via your local version of your step. And that's it!
+
+You won't find better description on the internet, because people just posts remote chunking examples, but no one was actually able to explain it in detail.
+
+Best Regards
+
+Tomas
+
+
