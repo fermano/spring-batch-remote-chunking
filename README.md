@@ -147,23 +147,10 @@ Now since we've got defined integration part with master, we can continue with o
             </bean>
         </property>
     </bean>
-
-    <!-- Master part of the job -->
-    <int:service-activator
-            id="masterServiceActivator"
-            input-channel="masterChunkRequests"
-            output-channel="masterChunkReplies"
-            ref="masterChunkHandler"
-            />
-
-    <bean id="masterChunkHandler" class="org.springframework.batch.integration.chunk.RemoteChunkHandlerFactoryBean">
-        <property name="chunkWriter" ref="chunkWriter" /> 
-        <property name="step" ref="stepWriteClientDataTransferItems" />
-    </bean>
 ```
 Let's explain previous Spring configuration fragment. Bean with id "**srvActivator**" is a service activator which is activated with receiving ChunkRequest object from channel chunkRequests, this channel is feeded by JMS message driven adapter with id slaveRequests, remember? This service activator passes this request to "**slaveChunkHandler**" where ChunkRequest is handed over to **ChunkProcessorChunkHandler**. Here you can come up with your processor and writer you want to run at slave nodes, see **itemProcessor** and **itemWriter** properties definition.
 
-### RemoteChunkHandlerFactoryBean ###
+### RemoteChunkHandlerFactoryBean (master node) ###
 
 And what about RemoteChunkHandlerFactoryBean? Well, this bean factory is maybe the most important part so far. Because this bean actually turns your local chunk-oriented step into remotely chunked. **And without need of changing your step configuration**! Pretty good, isn't it? And how does it work? Well, **RemoteChunkHandlerFactoryBean removes item-processor and item-writer from your step and puts there PassThroughItemProcessor and ChunkWriter into their place.** This isn't very well documented, but works it in this way. See following code from RemoteChunkHandlerFactoryBean which does that replacing:
 
@@ -220,7 +207,7 @@ This is certainly something you'd expect from your spring job scalling, right? L
             />
 ```
 
-Now "masterJMSRequests" is a Direct Channel, remember? With previous configurations, this channel has **two subscribers**, one which sends ChunkRequests to slaves(**outbound-channel-adapter**) and one which sends ChunkRequests for processing at master (**service-activator**) Now comes part which isn't documented very well, again. **These two subscribers receives ChunkRequests in round-robin manner by default, yes, MASTER AND SLAVES receives ChunkRequests in circular manner!** In case of service-activator, processing takes place at master node, chunk is processed as your local version of your step defines...Do you get the idea now? Processing at slaves you define by entering the flow after consuming ChunkRequest from queue at slaves via ChunkProcessorChunkHandler, see **srvActivator** bean. You still don't get it? See the following example:
+Well, "masterJMSRequests" is a Direct Channel, remember? With previous configurations, this channel has **two subscribers**, one which sends ChunkRequests to slaves(**outbound-channel-adapter**) and one which sends ChunkRequests for processing at master (**service-activator**) Now comes part which isn't documented very well, again. **These two subscribers receives ChunkRequests in round-robin manner by default, yes, MASTER AND SLAVES receives ChunkRequests on circular basis!** In case of service-activator, processing takes place at master node, chunk is processed as your local version of your step defines...Do you get the idea now? Processing at slaves you define by entering the flow after consuming ChunkRequest from queue at slaves via ChunkProcessorChunkHandler, see **srvActivator** bean. You still don't get it? See the following example:
 
 We've got for example Spring batch Step1, with **local definition**
 
@@ -239,9 +226,9 @@ processor = PassThroughItemProcessor
 writer = chunk-writer, publishing ChunkRequests to slaves
 
 ```
-Mentioned chunk-writer delegates into "**masterChunkRequests**" channel. If subscriber of that channel "masterJMSRequests" is invoked, request is send to slaves, if substriber "masterServiceActivator" is invoked, request is send to master and it's processed via your local version of your step. And that's it!
+Mentioned chunk-writer delegates into "**masterChunkRequests**" channel. If subscriber of that channel "masterJMSRequests" is invoked, request is send to slaves via JMS, if substriber "masterServiceActivator" is invoked, request is send to master and it's processed via your local version of your step. And that's it!
 
-You won't find better description on the internet, because people just posts remote chunking examples, but no one was actually able to explain it in detail.
+Guys, you won't find better description on the internet, because people just posts remote chunking examples, but no one was actually able to explain it in detail. I hope you found in my description everything you needed.
 
 Best Regards
 
