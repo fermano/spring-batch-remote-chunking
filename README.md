@@ -196,9 +196,7 @@ This is certainly something you'd expect from your spring job scaling, right? Le
         <property name="chunkWriter" ref="chunkWriter" /> 
         <property name="step" ref="stepWriteClientDataTransferItems" />
     </bean>
-```
 
-```
     <jms:outbound-channel-adapter id="masterJMSRequests"
                                   channel="masterChunkRequests"
                                   connection-factory="remoteChunkingConnectionFactory"
