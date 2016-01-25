@@ -82,7 +82,7 @@ I highly recommend to **get ChunkResponses from slaves via message-driven-channe
 
 ## Spring components necessary to define at Slave Nodes ##
 
-Spring Integration configuration at slaves logically must begin **with getting the ChunkRequests from master node**, see JMS message driven adapter "**slaveRequests**" in the following example. Also we need to define JMS outbound channel adapter for publishing the replies back to master, see "slaveOutgoingReplies" in the example below.
+Spring Integration configuration at slaves logically must begin **with getting the ChunkRequests from master node**, see JMS message driven adapter "**slaveRequests**" in the following example. Also we need to define JMS outbound channel adapter for publishing the replies back to master, see "**slaveOutgoingReplies**" in the example below.
 
 ```
 <!-- Slave request messages begin here -->
@@ -182,7 +182,7 @@ And what about RemoteChunkHandlerFactoryBean? Well, this bean factory is maybe t
 
 ### ChunkRequests are load-balanced between master and slaves in Round-Robin manner, yeah! ###
 
-This is certainly something you'd expect from your spring job scalling, right? Let's see how does it work, take a closer look at following two configuration fragments:
+This is certainly something you'd expect from your spring job scaling, right? Let's see how does it work, take a closer look at following two configuration fragments:
 
 ```
   <int:service-activator
@@ -206,7 +206,7 @@ This is certainly something you'd expect from your spring job scalling, right? L
             />
 ```
 
-Well, "**masterJMSRequests**" is a Direct Channel, remember? With previous configurations, this channel has **two subscribers**, one which sends ChunkRequests to slaves(**outbound-channel-adapter**) and one which sends ChunkRequests for processing at master (**service-activator**) Now comes part which isn't documented very well, again. **These two subscribers receives ChunkRequests in round-robin manner by default, yes, MASTER AND SLAVES receives ChunkRequests on circular basis!** In case of service-activator, processing takes place at master node, chunk is processed as your local version of your step defines...Do you get the idea now? Processing at slaves you define by entering the flow after consuming ChunkRequest from queue at slaves via ChunkProcessorChunkHandler, see **srvActivator** bean. You still don't get it? Then see the following example:
+Well, "**masterJMSRequests**" is a Direct Channel, remember? With previous configurations, this channel has **two subscribers**, one which sends ChunkRequests to slaves(**outbound-channel-adapter**) and one which sends ChunkRequests for processing at master (**service-activator**) Now comes part which isn't much obvious from documentation. **These two subscribers receives ChunkRequests in round-robin manner by default, yes, MASTER AND SLAVES receives ChunkRequests on circular basis!** In case of service-activator, processing takes place at master node, chunk is processed as your local version of your step defines...Do you get the idea now? Processing at slaves you define by entering the flow after consuming ChunkRequest from queue at slaves via ChunkProcessorChunkHandler, see **srvActivator** bean. You still don't get it? Then see the following example:
 
 We've got for example Spring batch "Step1", with **local definition**
 
@@ -222,9 +222,8 @@ Now with definition of RemoteChunkHandlerFactoryBean, "Step1" changes into:
 reader = A
 processor = PassThroughItemProcessor
 writer = chunk-writer, publishing ChunkRequests to slaves
-
 ```
-Mentioned chunk-writer delegates into "**masterChunkRequests**" channel. If subscriber of that channel "masterJMSRequests" is invoked, request is send to slaves via JMS, if substriber "masterServiceActivator" is invoked, request is send to master and it's processed via your **local version** of your step. And that's it!
+Mentioned chunk-writer delegates into "**masterChunkRequests**" channel. If subscriber of that channel "masterJMSRequests" is invoked, request is send to slaves via JMS, if subscriber "masterServiceActivator" is invoked, request is send to master and it's processed via your **local version** of your step. And that's it!
 
 Guys, you won't find better description on the internet, because people just posts remote chunking examples, but no one was actually able to explain it in detail. I hope you found in my description everything you needed.
 
