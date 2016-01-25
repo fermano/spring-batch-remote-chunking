@@ -223,6 +223,27 @@ writer = chunk-writer, publishing ChunkRequests to slaves
 ```
 Mentioned chunk-writer delegates into "**masterChunkRequests**" channel. If subscriber of that channel "masterJMSRequests" is invoked, request is send to slaves via JMS, if subscriber "masterServiceActivator" is invoked, request is send to master and it's processed via your **local version** of your step. And that's it!
 
+### Demo of Spring Batch Remote Chunking ###
+
+As always, I added a demo. To see remote chunking in action, simply run:
+
+
+```
+mvn clean install
+```
+
+run JUnit test:
+
+```
+DemoApplicationTests
+```
+
+launch it in your favorite IDE, like Spring Tool Site for example. In demo check resources folder, you will find there spring configurations which I explained here in detail. To not take complete credit, demo is based on 
+
+https://github.com/opencredo/spring-batch-remote-chunking-example
+
+I just removed JMS pooling from there and replaced it with JMS event adapters.
+
 Guys, you won't find better description on the internet, because people just posts remote chunking examples, but no one was actually able to explain it in detail. I hope you found in my description everything you needed.
 
 Best Regards
