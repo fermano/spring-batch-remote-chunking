@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:integration="http://www.springframework.org/schema/integration"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xsi:schemaLocation="http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.0.xsd
+		http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-2.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms-2.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<import resource="classpath:/slave/slave-integration-context.xml"/>
+
+	 <bean id="chunkHandler" class="org.springframework.batch.integration.chunk.ChunkProcessorChunkHandler">
+	 	<property name="chunkProcessor" >
+	 		<bean class="org.springframework.batch.core.step.item.SimpleChunkProcessor">
+	 				<property name="itemWriter" ref="writer"/>
+		 			<property name="itemProcessor">
+		 				<bean class="org.springframework.batch.item.support.PassThroughItemProcessor"/>
+		 			</property>
+	 		</bean>
+	 	</property>
+	 </bean>
+	 
+	 <!-- The Slave ItemWriter that does the writing -->
+	 
+	 <bean id="writer" class="com.example.components.TestItemWriter">
+	 			<beans:property name="writerName" value="remote-slave-2-writer"/>
+	 </bean>
+</beans>
+

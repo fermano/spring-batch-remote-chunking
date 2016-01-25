@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans" 
+	xmlns:integration="http://www.springframework.org/schema/integration"
+	xmlns:batch="http://www.springframework.org/schema/batch" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms" 
+	xsi:schemaLocation="http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-2.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms-2.0.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<import resource="classpath:/master/master-integration-context.xml"/>
+	
+	<job id="testjob" xmlns="http://www.springframework.org/schema/batch">
+		<step id="step">
+			<tasklet>
+				<chunk reader="reader" writer="writer" commit-interval="5" >
+				</chunk>
+				
+			</tasklet>
+		</step>
+	</job>
+
+	<bean id="reader" class="com.example.components.TestItemReader" scope="step">
+		<property name="items">
+			<list>
+				<value>http://test.com/item1</value>
+				<value>http://test.com/item2</value>
+				<value>http://test.com/item3</value>
+				<value>http://test.com/item4</value>
+				<value>http://test.com/item5</value>
+				<value>http://test.com/item6</value>
+				<value>http://test.com/item7</value>
+				<value>http://test.com/item8</value>
+				<value>http://test.com/item9</value>
+				<value>http://test.com/item10</value>
+				<value>http://test.com/item11</value>
+				<value>http://test.com/item12</value>
+				<value>http://test.com/item13</value>
+				<value>http://test.com/item14</value>
+				<value>http://test.com/item15</value>
+				<value>http://test.com/item16</value>
+				<value>http://test.com/item17</value>
+				<value>http://test.com/item18</value>
+				<value>http://test.com/item19</value>
+				<value>http://test.com/item20</value>
+				<value>http://test.com/item21</value>
+				<value>http://test.com/item22</value>
+				<value>http://test.com/item23</value>
+				<value>http://test.com/item24</value>
+				<value>http://test.com/item25</value>
+				<value>http://test.com/item26</value>
+				<value>http://test.com/item27</value>
+				<value>http://test.com/item28</value>
+				<value>http://test.com/item29</value>
+				<value>http://test.com/item30</value>
+				<value>http://test.com/item31</value>
+				<value>http://test.com/item32</value>
+				<value>http://test.com/item33</value>
+				<value>http://test.com/item34</value>
+				<value>http://test.com/item35</value>
+				<value>http://test.com/item36</value>
+				<value>http://test.com/item37</value>
+				<value>http://test.com/item38</value>
+				<value>http://test.com/item39</value>
+				<value>http://test.com/item40</value>
+				<value>http://test.com/item41</value>
+				<value>http://test.com/item42</value>
+				<value>http://test.com/item43</value>
+				<value>http://test.com/item44</value>
+				<value>http://test.com/item45</value>
+				<value>http://test.com/item46</value>
+				<value>http://test.com/item47</value>
+				<value>http://test.com/item48</value>
+				<value>http://test.com/item49</value>
+				<value>http://test.com/item50</value> 
+			</list>
+		</property>
+	</bean>
+
+	<bean id="writer" class="com.example.components.TestItemWriter">
+		<beans:property name="writerName" value="master-writer"/>
+	</bean>
+
+	<bean id="chunkWriter" class="org.springframework.batch.integration.chunk.ChunkMessageChannelItemWriter" scope="step">
+		<property name="messagingOperations" ref="messagingGateway" />
+		<property name="replyChannel" ref="replies" />
+		<property name="throttleLimit" value="5" />
+		<property name="maxWaitTimeouts" value="30000" />
+	</bean>
+
+	
+	
+	<integration:service-activator input-channel="requests" output-channel="replies" ref="chunkHandler" />
+
+	<bean id="chunkHandler" class="org.springframework.batch.integration.chunk.RemoteChunkHandlerFactoryBean">
+		<property name="chunkWriter" ref="chunkWriter" />
+		<property name="step" ref="step" />
+	</bean>
+
+	<bean id="transactionManager" class="org.springframework.batch.support.transaction.ResourcelessTransactionManager" />
+
+	<bean id="jobRepository" class="org.springframework.batch.core.repository.support.MapJobRepositoryFactoryBean">
+		<property name="transactionManager" ref="transactionManager" />
+	</bean>
+
+	<bean id="jobLauncher" class="org.springframework.batch.core.launch.support.SimpleJobLauncher">
+		<property name="jobRepository" ref="jobRepository" />
+	</bean>
+
+</beans>

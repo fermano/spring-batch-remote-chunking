@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans" 
+	xmlns:integration="http://www.springframework.org/schema/integration"
+	xmlns:batch="http://www.springframework.org/schema/batch" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:int-jms="http://www.springframework.org/schema/integration/jms" 
+	xsi:schemaLocation="http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-2.0.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+
+
+	<bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory" >
+		<property name="brokerURL">
+			<value>tcp://localhost:61616</value>
+		</property>
+	</bean>
+	
+	<!-- Remote Chunking Requests (The Producing of Chunks) Integration Configuration -->
+	
+	<bean id="messagingGateway" class="org.springframework.integration.core.MessagingTemplate">
+		<property name="defaultChannel" ref="jmsRequests" />
+		<property name="receiveTimeout" value="5000" />
+	</bean>	
+	
+	
+	 <integration:channel id="requests"/>
+	
+	<int-jms:outbound-channel-adapter connection-factory="connectionFactory" destination-name="requests" id="jmsRequests">
+		
+	</int-jms:outbound-channel-adapter>
+	
+	<!-- Remote Chunking Replies From Slave -->
+	
+	<int-jms:inbound-channel-adapter id="jmsReplies" connection-factory="connectionFactory" destination-name="replies" channel="replies" >
+		<integration:poller fixed-delay="200"></integration:poller>
+	</int-jms:inbound-channel-adapter>
+	
+	
+	<integration:channel id="replies">
+		<integration:queue />
+		  <integration:interceptors>
+	        <integration:wire-tap channel="loggingChannel"/>
+	    </integration:interceptors>
+	</integration:channel>	
+	
+
+	<integration:logging-channel-adapter id="loggingChannel" level="INFO" log-full-message="true"/>
+	
+	<task:executor id="poolExecutor" pool-size="5-10" queue-capacity="0" />
+
+</beans>
