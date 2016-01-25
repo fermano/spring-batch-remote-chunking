@@ -182,7 +182,7 @@ And what about RemoteChunkHandlerFactoryBean? Well, this bean factory is maybe t
 
 ### ChunkRequests are load-balanced between master and slaves in Round-Robin manner, yeah! ###
 
-This is certainly something you'd expect from your spring job scaling, right? Let's see how does it work, take a closer look at following two configuration fragments:
+This is certainly something you'd expect from your spring job scaling, right? Let's see how does it work, take a closer look at following configuration fragment:
 
 ```
   <int:service-activator
