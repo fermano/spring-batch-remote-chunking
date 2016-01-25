@@ -27,11 +27,12 @@
 	</bean>
 	
 	<!-- Slave request messages begin here -->
- 
- 	<int-jms:inbound-channel-adapter id="jmsRequests" connection-factory="connectionFactory" destination-name="requests" channel="requests" >
-		<integration:poller fixed-delay="500"></integration:poller>
-	</int-jms:inbound-channel-adapter>
-	
+	<int-jms:message-driven-channel-adapter id="jmsRequests"
+                                        connection-factory="connectionFactory"
+                                        destination-name="requests"
+                                        channel="requests"
+            />
+            	
 	<integration:channel id="requests"/>
 	
 	<integration:service-activator id="srvActivator" input-channel="requests" output-channel="replies" ref="chunkHandler" method="handleChunk"/>
@@ -42,8 +43,11 @@
 	    </integration:interceptors>
 	</integration:channel>
 	
-	<int-jms:outbound-channel-adapter id="outgoingReplies" connection-factory="connectionFactory" destination-name="replies" channel="replies"/>
- 
+	<int-jms:outbound-channel-adapter 
+					id="outgoingReplies" 
+					connection-factory="connectionFactory" 
+					destination-name="replies" 
+					channel="replies"/>
  
  	<integration:logging-channel-adapter id="loggingChannel" level="INFO" log-full-message="true"/>
 	 

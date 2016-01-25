@@ -32,16 +32,18 @@
 	
 	 <integration:channel id="requests"/>
 	
-	<int-jms:outbound-channel-adapter connection-factory="connectionFactory" destination-name="requests" id="jmsRequests">
+	<int-jms:outbound-channel-adapter connection-factory="connectionFactory" 
+			destination-name="requests" 
+			id="jmsRequests">
 		
 	</int-jms:outbound-channel-adapter>
 	
 	<!-- Remote Chunking Replies From Slave -->
-	
-	<int-jms:inbound-channel-adapter id="jmsReplies" connection-factory="connectionFactory" destination-name="replies" channel="replies" >
-		<integration:poller fixed-delay="200"></integration:poller>
-	</int-jms:inbound-channel-adapter>
-	
+	<int-jms:message-driven-channel-adapter id="jmsReplies"
+                                            connection-factory="connectionFactory"
+                                            destination-name="replies"
+                                            channel="replies"
+            />	
 	
 	<integration:channel id="replies">
 		<integration:queue />
