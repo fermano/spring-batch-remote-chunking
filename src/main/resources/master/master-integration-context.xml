@@ -1,24 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:beans="http://www.springframework.org/schema/beans" 
 	xmlns:integration="http://www.springframework.org/schema/integration"
-	xmlns:batch="http://www.springframework.org/schema/batch" 
-	xmlns:context="http://www.springframework.org/schema/context"
-	xmlns:task="http://www.springframework.org/schema/task"
 	xmlns:int-jms="http://www.springframework.org/schema/integration/jms" 
-	xsi:schemaLocation="http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-2.0.xsd
-		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
-		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
-		http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd
-		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd
-		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+	xsi:schemaLocation="http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/integration/jms http://www.springframework.org/schema/integration/jms/spring-integration-jms.xsd">
 
-
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<property name="connectionFactory" ref="connectionFactory" />
+		<property name="receiveTimeout" value="100" />
+		<!-- This is important... -->
+		<property name="sessionTransacted" value="true" />
+	</bean>
 
 	<bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory" >
 		<property name="brokerURL">
-			<value>tcp://localhost:61616</value>
+			<value>tcp://localhost:62616</value>
 		</property>
 	</bean>
 	
@@ -27,16 +25,13 @@
 	<bean id="messagingGateway" class="org.springframework.integration.core.MessagingTemplate">
 		<property name="defaultChannel" ref="jmsRequests" />
 		<property name="receiveTimeout" value="5000" />
-	</bean>	
+	</bean>
+
+	<integration:channel id="requests" />
 	
-	
-	 <integration:channel id="requests"/>
-	
-	<int-jms:outbound-channel-adapter connection-factory="connectionFactory" 
-			destination-name="requests" 
-			id="jmsRequests">
-		
-	</int-jms:outbound-channel-adapter>
+	<int-jms:outbound-channel-adapter connection-factory="connectionFactory"
+			destination-name="requests"
+			id="jmsRequests" />
 	
 	<!-- Remote Chunking Replies From Slave -->
 	<int-jms:message-driven-channel-adapter id="jmsReplies"
@@ -55,6 +50,6 @@
 
 	<integration:logging-channel-adapter id="loggingChannel" level="INFO" log-full-message="true"/>
 	
-	<task:executor id="poolExecutor" pool-size="5-10" queue-capacity="0" />
+	<!--<task:executor id="poolExecutor" pool-size="5-10" queue-capacity="0" />-->
 
 </beans>

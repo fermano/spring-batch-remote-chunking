@@ -16,8 +16,8 @@ public class DemoApplicationTests {
 	@Test
 	public void testRemoteChunkingOnMultipleSlavesShouldLoadBalanceAndComplete() throws Exception {
 
-		final BrokerContext broker = new BrokerContext("classpath:/broker/broker-context.xml");
-		broker.call();
+//		final BrokerContext broker = new BrokerContext("classpath:/broker/broker-context.xml");
+//		broker.call();
 		final MasterBatchContext masterBatchContext = new MasterBatchContext
 				("testjob", "classpath:/master/master-batch-context.xml");
 		final SlaveContext slaveContext1 = new SlaveContext(
@@ -37,7 +37,7 @@ public class DemoApplicationTests {
 		logger.info("slave 1 chunks written: " + slaveContext1.writtenCount() );
 		logger.info("slave 2 chunks written: " + slaveContext2.writtenCount() );
 		Assert.assertEquals("slave chunks written", 5, slaveContext1.writtenCount() ); 
-		Assert.assertEquals("slave chunks written", 5, slaveContext2.writtenCount()); 
+		Assert.assertEquals("slave chunks written", 5, slaveContext2.writtenCount());
 
 	}	
 }
